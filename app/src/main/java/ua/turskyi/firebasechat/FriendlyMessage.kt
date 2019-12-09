@@ -11,5 +11,4 @@ class FriendlyMessage {
         this.name = name
         this.photoUrl = photoUrl
     }
-
 }

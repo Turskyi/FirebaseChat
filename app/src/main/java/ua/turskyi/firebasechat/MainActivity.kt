@@ -188,7 +188,8 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == RC_SIGN_IN) {
             if (resultCode == Activity.RESULT_OK) { // Sign-in succeeded, set up the UI
                 Toast.makeText(this, "Signed in!", Toast.LENGTH_SHORT).show()
-            } else if (resultCode == Activity.RESULT_CANCELED) { // Sign in was canceled by the user, finish the activity
+            } else if (resultCode == Activity.RESULT_CANCELED) { // Sign in was canceled by the
+                // user, finish the activity
                 Toast.makeText(this, "Sign in canceled", Toast.LENGTH_SHORT).show()
                 finish()
             }
@@ -207,7 +208,8 @@ class MainActivity : AppCompatActivity() {
                             val result =
                                 taskSnapshot.storage.downloadUrl
                             result.addOnSuccessListener { uri ->
-                                // Set the download URL to the message box, so that the user can send it to the database
+                                // Set the download URL to the message box, so that the user can
+                                // send it to the database
                                 val friendlyMessage =
                                     FriendlyMessage(null, mUsername, uri.toString())
                                 mMessagesDatabaseReference!!.push().setValue(friendlyMessage)
@@ -285,7 +287,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // Fetch the config to determine the allowed length of messages.
-    fun fetchConfig() {
+    private fun fetchConfig() {
         var cacheExpiration: Long = 3600 // 1 hour in seconds
         // If developer mode is enabled reduce cacheExpiration to 0 so that each fetch goes to the
 // server. This should not be used in release builds.
@@ -315,12 +317,12 @@ class MainActivity : AppCompatActivity() {
      * cached values.
      */
     private fun applyRetrievedLengthLimit() {
-        val friendly_msg_length =
+        val friendlyMsgLength =
             mFirebaseRemoteConfig!!.getLong(FRIENDLY_MSG_LENGTH_KEY)
-        mMessageEditText!!.filters = arrayOf<InputFilter>(LengthFilter(friendly_msg_length.toInt()))
+        mMessageEditText!!.filters = arrayOf<InputFilter>(LengthFilter(friendlyMsgLength.toInt()))
         Log.d(
             TAG,
-            "$FRIENDLY_MSG_LENGTH_KEY = $friendly_msg_length"
+            "$FRIENDLY_MSG_LENGTH_KEY = $friendlyMsgLength"
         )
     }
 }
