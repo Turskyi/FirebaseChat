@@ -18,9 +18,19 @@ import com.firebase.ui.auth.AuthUI.IdpConfig.GoogleBuilder
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuth.AuthStateListener
 import com.google.firebase.database.*
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.StorageReference
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
+    companion object {
+        private const val TAG = "MainActivity"
+        const val ANONYMOUS = "anonymous"
+        const val DEFAULT_MSG_LENGTH_LIMIT = 1000
+        const val RC_SIGN_IN = 1
+        private const val RC_PHOTO_PICKER = 2
+    }
+
     private var mMessageListView: ListView? = null
     private var mMessageAdapter: MessageAdapter? = null
     private var mProgressBar: ProgressBar? = null
@@ -34,13 +44,18 @@ class MainActivity : AppCompatActivity() {
     private var mChildEventListener: ChildEventListener? = null
     private var mFirebaseAuth: FirebaseAuth? = null
     private var mAuthstateListener: AuthStateListener? = null
+    private var mFirebaseStorage: FirebaseStorage? = null
+    private var mChatPhotosStorageReference: StorageReference? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         mUsername = ANONYMOUS
         mFirebaseDatabase = FirebaseDatabase.getInstance()
         mFirebaseAuth = FirebaseAuth.getInstance()
+        mFirebaseStorage = FirebaseStorage.getInstance()
         mMessagesDatabaseReference = mFirebaseDatabase!!.reference.child("messages")
+        mChatPhotosStorageReference = mFirebaseStorage!!.reference.child("chat_photos")
         // Initialize references to views
         mProgressBar = findViewById<View>(R.id.progressBar) as ProgressBar
         mMessageListView =
@@ -57,7 +72,13 @@ class MainActivity : AppCompatActivity() {
         mProgressBar!!.visibility = ProgressBar.INVISIBLE
         // ImagePickerButton shows an image picker to upload a image for a message
         mPhotoPickerButton!!.setOnClickListener {
-            // TODO: Fire an intent to show an image picker
+            val intent = Intent(Intent.ACTION_GET_CONTENT)
+            intent.type = "image/jpeg"
+            intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true)
+            startActivityForResult(
+                Intent.createChooser(intent, "Complete action using"),
+                RC_PHOTO_PICKER
+            )
         }
         // Enable Send button when there's text to send
         mMessageEditText!!.addTextChangedListener(object : TextWatcher {
@@ -134,19 +155,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onActivityResult(
-        requestCode: Int,
-        resultCode: Int,
-        data: Intent?
-    ) {
+   override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == RC_SIGN_IN) {
-            if (resultCode == Activity.RESULT_OK) {
+            if (resultCode == Activity.RESULT_OK) { // Sign-in succeeded, set up the UI
                 Toast.makeText(this, "Signed in!", Toast.LENGTH_SHORT).show()
-            } else if (resultCode == Activity.RESULT_CANCELED) {
-                Toast.makeText(this, "Sign in canceled!", Toast.LENGTH_SHORT).show()
+            } else if (resultCode == Activity.RESULT_CANCELED) { // Sign in was canceled by the user, finish the activity
+                Toast.makeText(this, "Sign in canceled", Toast.LENGTH_SHORT).show()
                 finish()
             }
+        } else if (requestCode == RC_PHOTO_PICKER && resultCode == Activity.RESULT_OK) {
+            val selectedImageUri = data?.data
+            // Get a reference to store file at chat_photos/<FILENAME>
+            val photoRef =
+                mChatPhotosStorageReference!!.child(selectedImageUri!!.lastPathSegment!!)
+            // Upload file to Firebase Storage
+            photoRef.putFile(selectedImageUri)
+                .addOnSuccessListener(
+                    this
+                ) { taskSnapshot ->
+                    if (taskSnapshot.metadata != null) {
+                        if (taskSnapshot.metadata!!.reference != null) {
+                            val result =
+                                taskSnapshot.storage.downloadUrl
+                            result.addOnSuccessListener { uri ->
+                                // Set the download URL to the message box, so that the user can send it to the database
+                                val friendlyMessage =
+                                    FriendlyMessage(null, mUsername, uri.toString())
+                                mMessagesDatabaseReference!!.push().setValue(friendlyMessage)
+                            }
+                        }
+                    }
+                }
         }
     }
 
@@ -214,12 +254,5 @@ class MainActivity : AppCompatActivity() {
             mMessagesDatabaseReference!!.removeEventListener(mChildEventListener!!)
             mChildEventListener = null
         }
-    }
-
-    companion object {
-        private const val TAG = "MainActivity"
-        const val ANONYMOUS = "anonymous"
-        const val DEFAULT_MSG_LENGTH_LIMIT = 1000
-        const val RC_SIGN_IN = 1
     }
 }
