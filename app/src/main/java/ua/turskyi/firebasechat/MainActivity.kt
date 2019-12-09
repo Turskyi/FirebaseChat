@@ -35,6 +35,11 @@ class MainActivity : AppCompatActivity() {
         private const val RC_PHOTO_PICKER = 2
     }
 
+    private val FCM_API = "https://fcm.googleapis.com/fcm/send"
+    private val serverKey =
+        "key=" + "Enter your Key"
+    private val contentType = "application/json"
+
     private var mMessageListView: ListView? = null
     private var mMessageAdapter: MessageAdapter? = null
     private var mProgressBar: ProgressBar? = null
