@@ -1,12 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
-
-repositories {
-    mavenLocal()
-    flatDir {
-        dirs 'libs'
-    }
-}
+apply plugin: 'com.google.gms.google-services'
 
 android {
     compileSdkVersion 30
@@ -26,11 +20,6 @@ android {
                     'proguard-rules.pro'
         }
     }
-    packagingOptions {
-        exclude 'META-INF/LICENSE'
-        exclude 'META-INF/LICENSE-FIREBASE.txt'
-        exclude 'META-INF/NOTICE'
-    }
 }
 
 dependencies {
@@ -42,31 +31,32 @@ dependencies {
     // Material Design
     implementation 'com.google.android.material:material:1.4.0'
 
-    /* Displaying images */
+    // Displaying images
     implementation 'com.github.bumptech.glide:glide:4.12.0'
 
-    /* Firebase SDK for Google Analytics */
+    implementation 'com.google.firebase:firebase-core:19.0.0'
+    implementation 'com.google.android.gms:play-services-auth:19.2.0'
+
+    // Firebase SDK for Google Analytics
     implementation 'com.google.firebase:firebase-analytics:19.0.0'
 
-    /* Firebase for database */
+    // Firebase for database
     implementation 'com.google.firebase:firebase-database-ktx:20.0.1'
 
-    /* Firebase for authentication */
-    implementation 'com.google.firebase:firebase-auth:21.0.1'
+    // Firebase for authentication
     implementation 'com.firebaseui:firebase-ui-auth:8.0.0'
+    implementation 'com.google.firebase:firebase-auth-ktx:21.0.1'
 
-    /* Firebase for storage */
-    implementation 'com.google.firebase:firebase-storage:20.0.0'
 
-    /* Firebase for storage messaging */
+    // Firebase for storage messaging
     implementation 'com.google.firebase:firebase-messaging:22.0.0'
 
-    /* Firebase for remote config */
+    // Firebase for remote config
     implementation 'com.google.firebase:firebase-config-ktx:21.0.1'
+    // Firebase for storage
+    implementation 'com.google.firebase:firebase-storage-ktx:20.0.0'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 }
-
-apply plugin: 'com.google.gms.google-services'
