@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.AuthUI.IdpConfig.EmailBuilder
 import com.firebase.ui.auth.AuthUI.IdpConfig.GoogleBuilder
+import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuth.AuthStateListener
 import com.google.firebase.database.*
@@ -52,123 +53,131 @@ class MainActivity : AppCompatActivity() {
     private var mMessagesDatabaseReference: DatabaseReference? = null
     private var mChildEventListener: ChildEventListener? = null
     private var mFirebaseAuth: FirebaseAuth? = null
-    private var mAuthstateListener: AuthStateListener? = null
+    private var mAuthStateListener: AuthStateListener? = null
     private var mFirebaseStorage: FirebaseStorage? = null
     private var mChatPhotosStorageReference: StorageReference? = null
     private var mFirebaseRemoteConfig: FirebaseRemoteConfig? = null
+    private var  firebaseApp: FirebaseApp? = null
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        firebaseApp = FirebaseApp.initializeApp(this)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         mUsername = ANONYMOUS
-        mFirebaseDatabase = FirebaseDatabase.getInstance()
-        mFirebaseAuth = FirebaseAuth.getInstance()
-        mFirebaseStorage = FirebaseStorage.getInstance()
-        mFirebaseRemoteConfig = FirebaseRemoteConfig.getInstance();
+        if(firebaseApp != null){
+            mFirebaseDatabase = FirebaseDatabase.getInstance(firebaseApp!!)
+            mFirebaseAuth = FirebaseAuth.getInstance()
+            mFirebaseStorage = FirebaseStorage.getInstance()
+            mFirebaseRemoteConfig = FirebaseRemoteConfig.getInstance();
 
-        mMessagesDatabaseReference = mFirebaseDatabase!!.reference.child("messages")
-        mChatPhotosStorageReference = mFirebaseStorage!!.reference.child("chat_photos")
-        // Initialize references to views
-        mProgressBar = findViewById<View>(R.id.progressBar) as ProgressBar
-        mMessageListView =
-            findViewById<View>(R.id.messageListView) as ListView
-        mPhotoPickerButton = findViewById<View>(R.id.photoPickerButton) as ImageButton
-        mMessageEditText = findViewById<View>(R.id.messageEditText) as EditText
-        mSendButton = findViewById<View>(R.id.sendButton) as Button
-        // Initialize message ListView and its adapter
-        val friendlyMessages: List<FriendlyMessage?> =
-            ArrayList()
-        mMessageAdapter = MessageAdapter(this, R.layout.item_message, friendlyMessages)
-        mMessageListView!!.adapter = mMessageAdapter
-        // Initialize progress bar
-        mProgressBar!!.visibility = ProgressBar.INVISIBLE
-        // ImagePickerButton shows an image picker to upload a image for a message
-        mPhotoPickerButton!!.setOnClickListener {
-            val intent = Intent(Intent.ACTION_GET_CONTENT)
-            intent.type = "image/jpeg"
-            intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true)
-            startActivityForResult(
-                Intent.createChooser(intent, "Complete action using"),
-                RC_PHOTO_PICKER
-            )
-        }
-        // Enable Send button when there's text to send
-        mMessageEditText!!.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(
-                charSequence: CharSequence,
-                i: Int,
-                i1: Int,
-                i2: Int
-            ) {
-            }
-
-            override fun onTextChanged(
-                charSequence: CharSequence,
-                i: Int,
-                i1: Int,
-                i2: Int
-            ) {
-                mSendButton!!.isEnabled = charSequence.toString().trim { it <= ' ' }.isNotEmpty()
-            }
-
-            override fun afterTextChanged(editable: Editable) {}
-        })
-        mMessageEditText!!.filters = arrayOf<InputFilter>(
-            LengthFilter(DEFAULT_MSG_LENGTH_LIMIT)
-        )
-        // Send button sends a message and clears the EditText
-        mSendButton!!.setOnClickListener {
-            val friendlyMessage = FriendlyMessage(
-                mMessageEditText!!.text
-                    .toString(), mUsername, null
-            )
-            mMessagesDatabaseReference!!.push().setValue(friendlyMessage)
-            // Clear input box
-            mMessageEditText!!.setText("")
-        }
-        mAuthstateListener = AuthStateListener { firebaseAuth ->
-            val user = firebaseAuth.currentUser
-            if (user != null) { //user is signed in
-                onSignedInInitialize(user.displayName)
-            } else { //user is signed out
-                onSignedOutCleanup()
-                val providers = Arrays.asList(
-                    EmailBuilder().build(),
-                    GoogleBuilder().build()
-                )
-                // Create and launch sign-in intent
+            mMessagesDatabaseReference = mFirebaseDatabase!!.reference.child("messages")
+            mChatPhotosStorageReference = mFirebaseStorage!!.reference.child("chat_photos")
+            // Initialize references to views
+            mProgressBar = findViewById<View>(R.id.progressBar) as ProgressBar
+            mMessageListView =
+                findViewById<View>(R.id.messageListView) as ListView
+            mPhotoPickerButton = findViewById<View>(R.id.photoPickerButton) as ImageButton
+            mMessageEditText = findViewById<View>(R.id.messageEditText) as EditText
+            mSendButton = findViewById<View>(R.id.sendButton) as Button
+            // Initialize message ListView and its adapter
+            val friendlyMessages: List<FriendlyMessage?> =
+                ArrayList()
+            mMessageAdapter = MessageAdapter(this, R.layout.item_message, friendlyMessages)
+            mMessageListView!!.adapter = mMessageAdapter
+            // Initialize progress bar
+            mProgressBar!!.visibility = ProgressBar.INVISIBLE
+            // ImagePickerButton shows an image picker to upload a image for a message
+            mPhotoPickerButton!!.setOnClickListener {
+                val intent = Intent(Intent.ACTION_GET_CONTENT)
+                intent.type = "image/jpeg"
+                intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true)
                 startActivityForResult(
-                    AuthUI.getInstance()
-                        .createSignInIntentBuilder()
-                        .setIsSmartLockEnabled(false)
-                        .setAvailableProviders(providers)
-                        .build(),
-                    RC_SIGN_IN
+                    Intent.createChooser(intent, "Complete action using"),
+                    RC_PHOTO_PICKER
                 )
             }
-        }
+            // Enable Send button when there's text to send
+            mMessageEditText!!.addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(
+                    charSequence: CharSequence,
+                    i: Int,
+                    i1: Int,
+                    i2: Int
+                ) {
+                }
 
-        // Create Remote Config Setting to enable developer mode.
-        // Fetching configs from the server is normally limited to 5 requests per hour.
-        // Enabling developer mode allows many more requests to be made per hour, so developers
-        // can test different config values during development.
-        // Create Remote Config Setting to enable developer mode.
+                override fun onTextChanged(
+                    charSequence: CharSequence,
+                    i: Int,
+                    i1: Int,
+                    i2: Int
+                ) {
+                    mSendButton!!.isEnabled = charSequence.toString().trim { it <= ' ' }.isNotEmpty()
+                }
+
+                override fun afterTextChanged(editable: Editable) {}
+            })
+            mMessageEditText!!.filters = arrayOf<InputFilter>(
+                LengthFilter(DEFAULT_MSG_LENGTH_LIMIT)
+            )
+            // Send button sends a message and clears the EditText
+            mSendButton!!.setOnClickListener {
+                val friendlyMessage = FriendlyMessage(
+                    mMessageEditText!!.text
+                        .toString(), mUsername, null
+                )
+                mMessagesDatabaseReference!!.push().setValue(friendlyMessage)
+                // Clear input box
+                mMessageEditText!!.setText("")
+            }
+            mAuthStateListener = AuthStateListener { firebaseAuth ->
+                val user = firebaseAuth.currentUser
+                if (user != null) { //user is signed in
+                    onSignedInInitialize(user.displayName)
+                } else { //user is signed out
+                    onSignedOutCleanup()
+                    val providers = Arrays.asList(
+                        EmailBuilder().build(),
+                        GoogleBuilder().build()
+                    )
+                    // Create and launch sign-in intent
+                    startActivityForResult(
+                        AuthUI.getInstance()
+                            .createSignInIntentBuilder()
+                            .setIsSmartLockEnabled(false)
+                            .setAvailableProviders(providers)
+                            .build(),
+                        RC_SIGN_IN
+                    )
+                }
+            }
+
+            // Create Remote Config Setting to enable developer mode.
+            // Fetching configs from the server is normally limited to 5 requests per hour.
+            // Enabling developer mode allows many more requests to be made per hour, so developers
+            // can test different config values during development.
+            // Create Remote Config Setting to enable developer mode.
 // Fetching configs from the server is normally limited to 5 requests per hour.
 // Enabling developer mode allows many more requests to be made per hour, so developers
 // can test different config values during development.
-        val configSettings = FirebaseRemoteConfigSettings.Builder()
-            .setMinimumFetchIntervalInSeconds(3600L)
-            .build()
-        mFirebaseRemoteConfig!!.setConfigSettingsAsync(configSettings)
+            val configSettings = FirebaseRemoteConfigSettings.Builder()
+                .setMinimumFetchIntervalInSeconds(3600L)
+                .build()
+            mFirebaseRemoteConfig!!.setConfigSettingsAsync(configSettings)
 
-        // Define default config values. Defaults are used when fetched config values are not
-        // available. Eg: if an error occurred fetching values from the server.
-        // Define default config values. Defaults are used when fetched config values are not
+            // Define default config values. Defaults are used when fetched config values are not
+            // available. Eg: if an error occurred fetching values from the server.
+            // Define default config values. Defaults are used when fetched config values are not
 // available. Eg: if an error occurred fetching values from the server.
-        val defaultConfigMap: MutableMap<String, Any> = HashMap()
-        defaultConfigMap[FRIENDLY_MSG_LENGTH_KEY] = DEFAULT_MSG_LENGTH_LIMIT
-        mFirebaseRemoteConfig!!.setDefaultsAsync(defaultConfigMap)
-        fetchConfig()
+            val defaultConfigMap: MutableMap<String, Any> = HashMap()
+            defaultConfigMap[FRIENDLY_MSG_LENGTH_KEY] = DEFAULT_MSG_LENGTH_LIMIT
+            mFirebaseRemoteConfig!!.setDefaultsAsync(defaultConfigMap)
+            fetchConfig()
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -227,8 +236,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        if (mAuthstateListener != null) {
-            mFirebaseAuth!!.removeAuthStateListener(mAuthstateListener!!)
+        if (mAuthStateListener != null) {
+            mFirebaseAuth!!.removeAuthStateListener(mAuthStateListener!!)
         }
         detachDatabaseReadListener()
         mMessageAdapter!!.clear()
@@ -236,7 +245,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        mFirebaseAuth!!.addAuthStateListener(mAuthstateListener!!)
+        if(mFirebaseAuth != null && mAuthStateListener != null){
+            mFirebaseAuth!!.addAuthStateListener(mAuthStateListener!!)
+        }
     }
 
     private fun onSignedInInitialize(username: String?) {
