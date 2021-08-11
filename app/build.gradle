@@ -56,6 +56,9 @@ dependencies {
     // Firebase for storage
     implementation 'com.google.firebase:firebase-storage-ktx:20.0.0'
 
+    // avoids "Service not registered" exception
+    implementation "com.google.android.gms:play-services-basement:$play_services_basement_version"
+
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
